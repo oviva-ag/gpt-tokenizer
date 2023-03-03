@@ -9,6 +9,7 @@ import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,7 +24,6 @@ import java.util.stream.Stream;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.lang3.tuple.MutablePair;
 
 public class GptTokenizer {
 	public static final String ENCODER_FILE_NAME = "encoder.json";
@@ -34,7 +34,7 @@ public class GptTokenizer {
 
 	private final Map<String, String> cache = new HashMap<>();
 	private final Map<Integer, String> byte2unicode = byteToUnicode();
-	private final Map<MutablePair<String, String>, Integer> bpeRanks = new HashMap<>();
+	private final Map<SimpleEntry<String, String>, Integer> bpeRanks = new HashMap<>();
 	private final Pattern pattern = Pattern.compile(
 			"'s|'t|'re|'ve|'m|'ll|'d| ?\\p{L}+| ?\\p{N}+| ?[^\\s\\p{L}\\p{N}]+|\\s+(?!\\S)|\\s+");
 
@@ -54,7 +54,7 @@ public class GptTokenizer {
 
 			for (int i = 0; i < bpe.size(); i++) {
 				String[] pairs = bpe.get(i).split(" ");
-				this.bpeRanks.put(MutablePair.of(pairs[0], pairs[1]), i);
+				this.bpeRanks.put(new SimpleEntry<>(pairs[0], pairs[1]), i);
 			}
 		} catch (IOException | URISyntaxException e) {
 			throw new Exception("Unable to initialize tokenizer", e);
@@ -111,11 +111,11 @@ public class GptTokenizer {
 
 	}
 
-	private Set<MutablePair<String, String>> getPairs(List<String> word) {
-		Set<MutablePair<String, String>> pairs = new HashSet<>();
+	private Set<SimpleEntry<String, String>> getPairs(List<String> word) {
+		Set<SimpleEntry<String, String>> pairs = new HashSet<>();
 		String prevCharacter = word.get(0);
 		for (String character : word.subList(1, word.size())) {
-			pairs.add(new MutablePair<>(prevCharacter, character));
+			pairs.add(new SimpleEntry<>(prevCharacter, character));
 			prevCharacter = character;
 		}
 		return pairs;
@@ -153,13 +153,13 @@ public class GptTokenizer {
 
 		List<String> word = token.chars().mapToObj(i -> String.valueOf((char) i)).collect(Collectors.toList());
 
-		Set<MutablePair<String, String>> pairs = getPairs(word);
+		Set<SimpleEntry<String, String>> pairs = getPairs(word);
 
 		while (true) {
 			int minScore = Integer.MAX_VALUE;
-			MutablePair<String, String> biGram = null;
+			SimpleEntry<String, String> biGram = null;
 
-			for (MutablePair<String, String> pair : pairs) {
+			for (SimpleEntry<String, String> pair : pairs) {
 				if (bpeRanks.containsKey(pair)) {
 					int score = bpeRanks.get(pair);
 
@@ -174,8 +174,8 @@ public class GptTokenizer {
 				break;
 			}
 
-			String first = biGram.left;
-			String second = biGram.right;
+			String first = biGram.getKey();
+			String second = biGram.getValue();
 			List<String> newWord = new ArrayList<>();
 			int i = 0;
 
