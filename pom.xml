@@ -33,11 +33,6 @@
                 <enabled>true</enabled>
             </snapshots>
         </repository>
-        <repository>
-            <id>github</id>
-            <name>GitHub Oviva Apache Maven Packages</name>
-            <url>https://maven.pkg.github.com/oviva-ag/maven-repo</url>
-        </repository>
     </repositories>
 
     <dependencies>
